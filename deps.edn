@@ -1,0 +1,25 @@
+{:paths ["src" "resources"]
+ :deps {org.clojure/clojure    {:mvn/version "1.12.3"}
+        org.clojure/data.json  {:mvn/version "2.5.1"}
+
+        ;; HTTP client
+        hato/hato              {:mvn/version "1.0.0"}}
+
+ :aliases {:dev {:extra-paths ["dev"]
+                 :extra-deps {babashka/process {:mvn/version "0.6.23"}}}
+
+           :nrepl {:extra-paths ["dev"]
+                   :extra-deps {nrepl/nrepl {:mvn/version "1.6.0"}
+                                cider/cider-nrepl {:mvn/version "0.50.3"}}
+                   :jvm-opts ["-Djdk.attach.allowAttachSelf"]
+                   :main-opts ["-m" "nrepl.cmdline"
+                               "--middleware" "[cider.nrepl/cider-middleware]"]}
+
+           :build {:deps {io.github.clojure/tools.build
+                          {:git/tag "v0.10.10" :git/sha "deedd62"}
+                          com.dcj/codox-md {:mvn/version "0.1.0"}}
+                   :ns-default build}
+
+           :test {:extra-paths ["test"]
+                  :extra-deps {lambdaisland/kaocha {:mvn/version "1.91.1392"}}
+                  :main-opts ["-m" "kaocha.runner" "--config-file" "tests.edn"]}}}

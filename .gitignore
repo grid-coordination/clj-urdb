@@ -1,0 +1,13 @@
+target/
+.cpcache/
+.nrepl-port
+*.class
+*.jar
+.clj-kondo/.cache/
+.lsp/
+.clj-xref/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
