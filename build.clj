@@ -3,7 +3,7 @@
   (:require [clojure.tools.build.api :as b]
             [codox.md.build :as doc]))
 
-(def lib 'energy.grid-coordination/clj-openei)
+(def lib 'energy.grid-coordination/clj-urdb)
 (def version "0.1.0")
 (def class-dir "target/classes")
 
@@ -28,7 +28,7 @@
                       [:name "MIT"]
                       [:url "https://opensource.org/licenses/MIT"]]]]
          :scm {:tag (str "v" version)
-               :url "https://github.com/grid-coordination/clj-openei"}
+               :url "https://github.com/grid-coordination/clj-urdb"}
          :basis (b/create-basis {})
          :class-dir class-dir
          :target "target"

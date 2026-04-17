@@ -1,8 +1,8 @@
-# clj-openei
+# clj-urdb
 
 Clojure client for the [OpenEI Utility Rate Database (URDB)](https://openei.org/wiki/Utility_Rate_Database).
 
-Fetches utility tariff data from OpenEI, resolves timestamps to applicable energy prices, and generates price schedules suitable for publishing as OpenADR 3 events.
+Fetches utility tariff data from the URDB, resolves timestamps to applicable energy prices, and generates price schedules suitable for publishing as OpenADR 3 events.
 
 ## Status
 
@@ -12,12 +12,12 @@ Early development. See design issue for planned scope.
 
 ```clojure
 ;; deps.edn
-energy.grid-coordination/clj-openei {:mvn/version "0.1.0"}
+energy.grid-coordination/clj-urdb {:mvn/version "0.1.0"}
 ```
 
 ```clojure
-(require '[openei.client :as client]
-         '[openei.price :as price])
+(require '[urdb.client :as client]
+         '[urdb.price :as price])
 
 ;; Search for tariffs
 (def rates (client/search-rates {:utility "Pacific Gas & Electric"
