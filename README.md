@@ -1,6 +1,8 @@
 # clj-urdb
 
 [![Clojars Project](https://img.shields.io/clojars/v/energy.grid-coordination/clj-urdb.svg)](https://clojars.org/energy.grid-coordination/clj-urdb)
+[![md-docs](https://img.shields.io/badge/md--docs-included-green)](https://github.com/dcj/codox-md)
+[![build-provenance](https://img.shields.io/badge/build--provenance-included-blue)](https://github.com/dcj/build-provenance)
 
 Clojure client for the [OpenEI Utility Rate Database (URDB)](https://openei.org/wiki/Utility_Rate_Database).
 
