@@ -2,10 +2,11 @@
   (:refer-clojure :exclude [test])
   (:require [build-provenance.write :as bp]
             [clojure.tools.build.api :as b]
-            [codox.md.build :as doc]))
+            [codox.md.build :as doc]
+            [deps-deploy.deps-deploy :as dd]))
 
 (def lib 'energy.grid-coordination/clj-urdb)
-(def version "0.1.0")
+(def version "0.1.1")
 (def class-dir "target/classes")
 
 (defn test "Run all the tests." [opts]
@@ -57,6 +58,12 @@
 (defn install "Install the JAR locally." [opts]
   (let [opts (jar-opts opts)]
     (b/install opts))
+  opts)
+
+(defn deploy "Deploy the JAR to Clojars." [opts]
+  (let [{:keys [jar-file] :as opts} (jar-opts opts)]
+    (dd/deploy {:installer :remote :artifact (b/resolve-path jar-file)
+                :pom-file (b/pom-path (select-keys opts [:lib :class-dir]))}))
   opts)
 
 (defn clean [_]
