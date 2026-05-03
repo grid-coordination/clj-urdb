@@ -23,7 +23,7 @@ Fetches utility tariff data from the URDB v7 API, resolves timestamps to applica
 
 ```clojure
 ;; deps.edn
-energy.grid-coordination/clj-urdb {:mvn/version "0.1.0"}
+energy.grid-coordination/clj-urdb {:mvn/version "0.2.0"}
 ```
 
 ## Prerequisites

@@ -6,7 +6,7 @@
             [deps-deploy.deps-deploy :as dd]))
 
 (def lib 'energy.grid-coordination/clj-urdb)
-(def version "0.1.1")
+(def version "0.2.0")
 (def class-dir "target/classes")
 
 (defn test "Run all the tests." [opts]
