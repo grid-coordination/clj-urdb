@@ -102,9 +102,11 @@ Both `search-rates` and `get-rate` return coerced entities with namespaced keywo
 
 ;; Generate a 24-hour price schedule
 (gen/price-schedule rate now tomorrow pacific)
-;; => [{:tick/beginning #inst "...", :tick/end #inst "...",
+;; => [{:tick/beginning #time/zoned-date-time "2026-04-14T00:00-07:00[America/Los_Angeles]"
+;;      :tick/end       #time/zoned-date-time "2026-04-14T08:00-07:00[America/Los_Angeles]"
 ;;      :urdb.interval/price 0.08, :urdb.interval/period-label "Off-Peak", ...}
-;;     {:tick/beginning #inst "...", :tick/end #inst "...",
+;;     {:tick/beginning #time/zoned-date-time "2026-04-14T08:00-07:00[America/Los_Angeles]"
+;;      :tick/end       #time/zoned-date-time "2026-04-14T12:00-07:00[America/Los_Angeles]"
 ;;      :urdb.interval/price 0.15, :urdb.interval/period-label "Mid-Peak", ...}
 ;;     ...]
 
@@ -112,7 +114,7 @@ Both `search-rates` and `get-rate` return coerced entities with namespaced keywo
 (gen/price-schedule-days rate now 7 pacific)
 ```
 
-Adjacent hours with the same price and period are merged into single contiguous intervals. Each interval has `:tick/beginning` and `:tick/end` keys, making them compatible with [tick](https://github.com/juxt/tick) interval algebra.
+Adjacent hours with the same price and period are merged into single contiguous intervals. Each interval has `:tick/beginning` and `:tick/end` keys (as `java.time.ZonedDateTime` in the supplied zone), making them compatible with [tick](https://github.com/juxt/tick) interval algebra.
 
 ### Inspect rate structure
 
@@ -137,6 +139,34 @@ Adjacent hours with the same price and period are merged into single contiguous 
 (:urdb/raw (meta rate))
 ;; => {:label "...", :energyratestructure [...], ...}
 ```
+
+## Time and timezones
+
+clj-urdb is **`ZonedDateTime`-at-the-boundary**: every interval emitted by `urdb.generate` carries `:tick/beginning` and `:tick/end` as `java.time.ZonedDateTime` in the zone you pass in. Internally, hour stepping uses `ZonedDateTime#plusHours`, so DST transitions are handled correctly:
+
+- **Spring-forward** day produces 23 hourly buckets (the local 02:xx hour is skipped).
+- **Fall-back** day produces 25 hourly buckets (the local 01:xx hour repeats).
+
+The library does not synthesize, drop, or repeat hours — it lets `ZonedDateTime` arithmetic do the right thing for the supplied zone.
+
+**Zone source: caller-supplied `ZoneId` arg.** `urdb.price/resolve-price`, `urdb.generate/price-schedule`, and `urdb.generate/price-schedule-days` all take a `java.time.ZoneId` parameter that determines (a) which local wall-clock hour the URDB TOU schedule is indexed against and (b) the zone of the `ZonedDateTime` values on the returned intervals. clj-urdb does not infer a zone from the tariff record — the URDB record does not carry one.
+
+**Standing rule:** pass an IANA `ZoneId` (e.g. `(ZoneId/of "America/Los_Angeles")`), not a fixed offset. TOU schedules and DST behavior are only correct under a real zone.
+
+```clojure
+(require '[tick.core :as t])
+
+;; ZonedDateTime intervals work directly with tick's interval algebra
+(let [sched (gen/price-schedule rate start end pacific)]
+  (t/relation (nth sched 0) (nth sched 1)))   ;=> :meets
+
+;; Reach the wall-clock pieces directly
+(let [{:tick/keys [beginning end]} (first sched)]
+  [(.getHour ^java.time.ZonedDateTime beginning)
+   (.getZone ^java.time.ZonedDateTime end)])
+```
+
+If a downstream consumer wants `Instant`s, call `.toInstant` at that boundary; clj-urdb does not pre-convert.
 
 ## Namespaces
 
@@ -189,6 +219,14 @@ clojure -T:build ci
 # Install locally
 clojure -T:build install
 ```
+
+## Contributing
+
+Issues, Discussions, and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow (and the dev commands: tests, lint, nREPL, build). In short:
+
+- **Questions, API/design discussion, URDB modeling gaps** → [Discussions](https://github.com/grid-coordination/clj-urdb/discussions)
+- **Confirmed bugs, coercion/schema fixes, doc errors** → [Issues](https://github.com/grid-coordination/clj-urdb/issues)
+- **Patches** → pull requests; please open a Discussion or Issue first for non-trivial changes (new endpoints, new schema fields, new coercion behavior, contract changes to price resolution or schedule generation)
 
 ## License
 

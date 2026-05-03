@@ -3,7 +3,10 @@
         org.clojure/data.json  {:mvn/version "2.5.1"}
 
         ;; HTTP client
-        hato/hato              {:mvn/version "1.0.0"}}
+        hato/hato              {:mvn/version "1.0.0"}
+
+        ;; Malli schemas (urdb.rate.schema, urdb.rate.schema.raw)
+        metosin/malli          {:mvn/version "0.20.1"}}
 
  :aliases {:dev {:extra-paths ["dev"]
                  :extra-deps {babashka/process {:mvn/version "0.6.23"}}}

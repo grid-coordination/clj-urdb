@@ -1,5 +1,6 @@
 (ns urdb.rate.schema
-  "Coerced entity Malli schemas — the public contract for rate entities.")
+  "Coerced entity Malli schemas — the public contract for rate entities."
+  (:import [java.time ZonedDateTime]))
 
 (def Tier
   "A normalized pricing tier."
@@ -62,10 +63,11 @@
 
 (def PriceInterval
   "A resolved price for a contiguous time span.
-   Also a tick interval (has :tick/beginning and :tick/end)."
+   Also a tick interval (has :tick/beginning and :tick/end), exposed as
+   java.time.ZonedDateTime in the caller-supplied zone."
   [:map
-   [:tick/beginning inst?]
-   [:tick/end inst?]
+   [:tick/beginning [:fn (partial instance? ZonedDateTime)]]
+   [:tick/end [:fn (partial instance? ZonedDateTime)]]
    [:urdb.interval/price :double]
    [:urdb.interval/period :int]
    [:urdb.interval/period-label :string]

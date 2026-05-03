@@ -1,6 +1,7 @@
 (ns urdb.generate
   "Generate contiguous price schedules for time windows.
-   Produces sequences of PriceInterval entities with :tick/beginning and :tick/end."
+   Produces sequences of PriceInterval entities with :tick/beginning and
+   :tick/end as java.time.ZonedDateTime in the caller-supplied zone."
   (:require [urdb.price :as price])
   (:import [java.time Instant ZoneId ZonedDateTime Duration]
            [java.time.temporal ChronoUnit]))
@@ -10,13 +11,14 @@
   [^ZonedDateTime zdt]
   (.truncatedTo zdt ChronoUnit/HOURS))
 
-(defn- hour-instants
-  "Generate a seq of Instants at the start of each hour from start to end."
+(defn- hour-zdts
+  "Generate a seq of ZonedDateTimes at the start of each hour from start to end.
+   Both bounds are Instants; the returned ZonedDateTimes are in zone-id, with
+   DST-correct hour arithmetic via ZonedDateTime#plusHours."
   [^Instant start ^Instant end ^ZoneId zone-id]
   (let [first-hour (hour-start (.atZone start zone-id))]
     (->> (iterate #(.plusHours ^ZonedDateTime % 1) first-hour)
-         (map #(.toInstant ^ZonedDateTime %))
-         (take-while #(.isBefore ^Instant % end)))))
+         (take-while #(.isBefore (.toInstant ^ZonedDateTime %) end)))))
 
 (defn- merge-intervals
   "Merge adjacent intervals with the same price and period into single spans."
@@ -43,27 +45,32 @@
      zone-id  — java.time.ZoneId, customer's local timezone
 
    Returns a vector of PriceInterval maps, each with:
-     :tick/beginning, :tick/end           — Instants bounding the interval
+     :tick/beginning, :tick/end           — java.time.ZonedDateTime in zone-id
+                                            bounding the interval
      :urdb.interval/price, /period, etc. — resolved price data
 
    Adjacent hours with the same price and period are merged into
-   single contiguous intervals."
+   single contiguous intervals. Hour stepping uses ZonedDateTime arithmetic,
+   so spring-forward / fall-back days produce 23 / 25 hourly buckets."
   [rate-entity ^Instant start ^Instant end ^ZoneId zone-id]
-  (let [hours (hour-instants start end zone-id)
-        one-hour (Duration/ofHours 1)
+  (let [hours (hour-zdts start end zone-id)
         hourly-intervals
-        (mapv (fn [^Instant hour-instant]
-                (let [resolved (price/resolve-price rate-entity hour-instant zone-id)
-                      hour-end (.plus hour-instant one-hour)]
+        (mapv (fn [^ZonedDateTime hour-zdt]
+                (let [resolved (price/resolve-price rate-entity
+                                                    (.toInstant hour-zdt)
+                                                    zone-id)
+                      hour-end (.plusHours hour-zdt 1)]
                   (-> resolved
-                      (assoc :tick/beginning hour-instant
+                      (assoc :tick/beginning hour-zdt
                              :tick/end hour-end)
                       (with-meta {:urdb/raw (meta rate-entity)}))))
               hours)]
     (merge-intervals hourly-intervals)))
 
 (defn price-schedule-days
-  "Convenience: generate a price schedule for N days starting from an instant."
+  "Convenience: generate a price schedule for N days starting from an instant.
+   See `price-schedule` for the returned shape — :tick/beginning and :tick/end
+   are java.time.ZonedDateTime in the supplied zone-id."
   [rate-entity ^Instant start days ^ZoneId zone-id]
   (let [end (.plus start (Duration/ofDays days))]
     (price-schedule rate-entity start end zone-id)))

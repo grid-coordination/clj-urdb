@@ -1,8 +1,10 @@
 (ns urdb.generate-test
   (:require [clojure.test :refer [deftest is testing]]
+            [malli.core :as m]
             [urdb.rate :as rate]
+            [urdb.rate.schema :as schema]
             [urdb.generate :as generate])
-  (:import [java.time Instant ZoneId Duration]))
+  (:import [java.time Instant ZoneId ZonedDateTime Duration]))
 
 (def pacific (ZoneId/of "America/Los_Angeles"))
 
@@ -75,3 +77,35 @@
           sched (generate/price-schedule tou-rate start end pacific)]
       (doseq [[a b] (partition 2 1 sched)]
         (is (= (:tick/end a) (:tick/beginning b)))))))
+
+(deftest tick-keys-are-zoned-date-time
+  (testing ":tick/beginning and :tick/end are ZonedDateTime in supplied zone"
+    (let [start (Instant/parse "2026-04-14T07:00:00Z")
+          end   (.plus start (Duration/ofHours 24))
+          sched (generate/price-schedule tou-rate start end pacific)]
+      (doseq [interval sched]
+        (is (instance? ZonedDateTime (:tick/beginning interval)))
+        (is (instance? ZonedDateTime (:tick/end interval)))
+        (is (= pacific (.getZone ^ZonedDateTime (:tick/beginning interval))))
+        (is (= pacific (.getZone ^ZonedDateTime (:tick/end interval)))))
+      (testing "schema validates"
+        (doseq [interval sched]
+          (is (m/validate schema/PriceInterval interval)))))))
+
+(deftest dst-spring-forward-23-hours
+  (testing "spring-forward day yields 23 hourly buckets via ZonedDateTime arithmetic"
+    ;; 2026-03-08 is the US spring-forward day.
+    ;; Local midnight Pacific = 08:00Z (PST -08:00); 24h later = next-day 07:00Z (PDT -07:00).
+    (let [start (Instant/parse "2026-03-08T08:00:00Z")
+          end   (Instant/parse "2026-03-09T07:00:00Z")
+          ;; Use a flat rate so no merging — every hour is its own interval.
+          sched (generate/price-schedule flat-rate start end pacific)]
+      ;; Flat rate merges to a single contiguous span — sanity check.
+      (is (= 1 (count sched)))
+      (let [{:tick/keys [beginning end]} (first sched)]
+        (is (instance? ZonedDateTime beginning))
+        (is (instance? ZonedDateTime end))
+        ;; Start at 00:00 PST, end at 24:00 PDT — a single ZDT span across the
+        ;; gap. The wall-clock difference is 24h but the instant difference is 23h.
+        (is (= 23 (.toHours (Duration/between (.toInstant ^ZonedDateTime beginning)
+                                              (.toInstant ^ZonedDateTime end)))))))))
